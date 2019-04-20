@@ -16,6 +16,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 
@@ -82,49 +83,40 @@ public class main extends AppCompatActivity {
                     @Override
                     public void onComplete(@NonNull Task<QuerySnapshot> task) {
                         if(task.isSuccessful()) {
-                            //Checking if collection and its data already exist so it doesn't keep adding the users
-                            if(task.getResult().size() == 0) {
-                                for (int i = 0; i < USER_NAMES.length; i++) {
-                                    Map<String, Object> user = new HashMap<>();
-                                    user.put("name", USER_NAMES[i]);
-                                    user.put("occupation", USER_OCCUPATION[i]);
-                                    user.put("private", USER_PRIVATE[i]);
+                            for (int i = 0; i < USER_NAMES.length; i++) {
+                                Map<String, Object> user = new HashMap<>();
+                                user.put("name", USER_NAMES[i]);
+                                user.put("occupation", USER_OCCUPATION[i]);
+                                user.put("private", USER_PRIVATE[i]);
 
-                                    database.collection("users")
-                                            .add(user);
-
-                                }
+                                database.collection("users").document("USER" + i)
+                                        .set(user);
                             }
                         }
                     }
                 });
-
     }
 
     //Getting user data from database and passing that data to the displayUsers method
     private void getUsers() {
-        database.collection("users")
-                .get()
-                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        if(task.isSuccessful()) {
-                            ArrayList<String> users = new ArrayList<>();
-                            int i = 0;
-                            for(QueryDocumentSnapshot document : task.getResult()) {
-                                if(document.getBoolean("private") == false) {
-                                    users.add(document.getString("name") + "," + document.getString("occupation"));
-                                }
-                                i++;
-                            }
-                            displayUsers(users);
+        Query getUsers = database.collection("users")
+                .whereEqualTo("private", false);
 
-                        } else {
-                            ArrayList<String> users = null;
-                            displayUsers(users);
-                        }
+        getUsers.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                ArrayList<String> users = new ArrayList<>();
+                if(task.isSuccessful()) {
+                    for(QueryDocumentSnapshot user : task.getResult()) {
+                        users.add(user.getString("name") + "," + user.getString("occupation"));
                     }
-                });
+                    displayUsers(users);
+                } else {
+                    users = null;
+                    displayUsers(users);
+                }
+            }
+        });
     }
 
     //Checks if user is singed in, calls sign in if user is not signed in
